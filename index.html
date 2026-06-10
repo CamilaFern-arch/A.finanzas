@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🌸Mi Agenda Financiera ✨</title>
+    <title>🌸Mi Agenda Financiera🌸</title>
     <style>
         :root {
             --pink-pastel: #FFE5EC;
@@ -32,6 +32,7 @@
             padding: 25px;
             box-shadow: 0 8px 24px rgba(251, 111, 146, 0.15);
             border: 3px solid var(--pink-pastel);
+            box-sizing: border-box; /* Evita que los elementos se desborden o queden corridos */
         }
 
         header {
@@ -39,10 +40,16 @@
             margin-bottom: 20px;
         }
 
+        /* Título optimizado para que las flores queden siempre en paralelo */
         h1 {
             color: var(--pink-dark);
-            font-size: 24px;
-            margin-bottom: 5px;
+            font-size: 20px; 
+            margin: 0 0 5px 0;
+            white-space: nowrap; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
         }
 
         /* Sección de la Frase Diaria */
@@ -82,11 +89,12 @@
             margin: 10px 0 0 0;
         }
 
-        /* Formularios e Inputs */
+        /* Formularios alineados perfectamente */
         .form-group {
             display: flex;
             gap: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
+            width: 100%;
         }
 
         input, select {
@@ -96,11 +104,14 @@
             outline: none;
             font-size: 14px;
             transition: 0.3s;
+            box-sizing: border-box;
         }
 
-        input[type="text"] { flex: 2; }
-        input[type="number"] { flex: 1; }
-        select { flex: 1; background: white; }
+        /* Distribución proporcional para evitar desfases */
+        input[type="text"] { width: 65%; }
+        input[type="number"] { width: 35%; }
+        select { width: 50%; background: white; }
+        .btn-add { width: 50%; }
 
         input:focus, select:focus {
             border-color: var(--pink-dark);
@@ -115,7 +126,6 @@
             cursor: pointer;
             font-weight: bold;
             font-size: 14px;
-            width: 100%;
             transition: 0.3s;
         }
 
@@ -124,7 +134,7 @@
             transform: translateY(-1px);
         }
 
-        /* Lista de Movimientos */
+        /* Lista de Movimientos con botón de borrado */
         .transactions-list {
             margin-top: 25px;
         }
@@ -138,25 +148,51 @@
             border-radius: 12px;
             margin-bottom: 10px;
             border-right: 4px solid #FFF;
+            gap: 10px;
         }
 
         .transaction-item.ingreso { border-right-color: #87CCB9; }
         .transaction-item.gasto { border-right-color: var(--pink-dark); }
 
-        .item-details {
+        .item-left {
             display: flex;
             flex-direction: column;
+            flex-grow: 1;
         }
 
-        .item-concept { font-weight: 600; font-size: 14px; }
+        .item-concept { font-weight: 600; font-size: 14px; word-break: break-word; }
         .item-type { font-size: 11px; color: #9B9B9B; }
+
+        .item-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
 
         .item-amount {
             font-weight: bold;
             font-size: 15px;
+            white-space: nowrap;
         }
         .item-amount.ingreso { color: #55A38D; }
         .item-amount.gasto { color: var(--pink-dark); }
+
+        /* Botón pequeño para eliminar de forma cute */
+        .btn-delete {
+            background: none;
+            color: #A0A0A0;
+            border: none;
+            padding: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 5px;
+            transition: 0.2s;
+        }
+        .btn-delete:hover {
+            color: var(--pink-dark);
+            background-color: #FFF0F5;
+            transform: scale(1.1);
+        }
 
     </style>
 </head>
@@ -187,7 +223,7 @@
                 <option value="ingreso">🌸 Ingreso (+)</option>
                 <option value="gasto">💸 Gasto (-)</option>
             </select>
-            <button onclick="addTransaction()">Añadir</button>
+            <button class="btn-add" onclick="addTransaction()">Añadir</button>
         </div>
 
         <div class="transactions-list">
@@ -198,7 +234,6 @@
     </div>
 
     <script>
-        // Array de frases motivadoras diarias
         const quotes = [
             "✨ Controlar tu dinero es controlar tu libertad.",
             "🌸 ¡Tu negocio va a crecer tanto como cuides de él hoy!",
@@ -211,19 +246,26 @@
 
         let balance = 0;
 
-        // Cambiar la frase aleatoriamente al cargar
         window.onload = function() {
             const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
             document.getElementById('daily-quote').innerText = randomQuote;
         };
 
-        // Función para agregar ingresos o gastos
+        function updateBalanceDisplay() {
+            const totalBalance = document.getElementById('total-balance');
+            totalBalance.innerText = `$${balance.toFixed(2)}`;
+            if(balance < 0) {
+                totalBalance.style.color = "#FB6F92"; 
+            } else {
+                totalBalance.style.color = "#55A38D";
+            }
+        }
+
         function addTransaction() {
             const conceptInput = document.getElementById('concept');
             const amountInput = document.getElementById('amount');
             const typeInput = document.getElementById('type');
             const listContainer = document.getElementById('list-container');
-            const totalBalance = document.getElementById('total-balance');
 
             const concept = conceptInput.value.trim();
             const amount = parseFloat(amountInput.value);
@@ -234,41 +276,55 @@
                 return;
             }
 
-            // Actualizar la suma o la resta automáticamente
             if (type === 'ingreso') {
                 balance += amount;
             } else {
                 balance -= amount;
             }
 
-            // Actualizar el diseño del balance en pantalla
-            totalBalance.innerText = `$${balance.toFixed(2)}`;
-            if(balance < 0) {
-                totalBalance.style.color = "#FB6F92"; 
-            } else {
-                totalBalance.style.color = "#55A38D";
-            }
+            updateBalanceDisplay();
 
-            // Crear el elemento en la lista (Estilo Agenda)
+            // Generar un ID único para poder borrar este elemento específico después
+            const itemId = 'item-' + Date.now();
+
             const item = document.createElement('div');
             item.classList.add('transaction-item', type);
+            item.setAttribute('id', itemId);
 
             item.innerHTML = `
-                <div class="item-details">
+                <div class="item-left">
                     <span class="item-concept">${concept}</span>
                     <span class="item-type">${type === 'ingreso' ? '🌸 Ingreso' : '💸 Gasto'}</span>
                 </div>
-                <span class="item-amount ${type}">
-                    ${type === 'ingreso' ? '+' : '-'}$${amount.toFixed(2)}
-                </span>
+                <div class="item-right">
+                    <span class="item-amount ${type}">
+                        ${type === 'ingreso' ? '+' : '-'}$${amount.toFixed(2)}
+                    </span>
+                    <button class="btn-delete" onclick="deleteTransaction('${itemId}', ${amount}, '${type}')" title="Borrar">❌</button>
+                </div>
             `;
 
-            // Insertar arriba en la lista
             listContainer.insertBefore(item, listContainer.firstChild);
 
-            // Limpiar los campos del formulario
             conceptInput.value = '';
             amountInput.value = '';
+        }
+
+        // Nueva función para borrar el movimiento y recalcular de forma automática
+        function deleteTransaction(id, amount, type) {
+            const itemToDelete = document.getElementById(id);
+            if (itemToDelete) {
+                // Si borramos un ingreso, restamos ese dinero del balance. Si borramos un gasto, lo devolvemos.
+                if (type === 'ingreso') {
+                    balance -= amount;
+                } else {
+                    balance += amount;
+                }
+                
+                // Actualizar la pantalla y remover el elemento visualmente
+                updateBalanceDisplay();
+                itemToDelete.remove();
+            }
         }
     </script>
 </body>
