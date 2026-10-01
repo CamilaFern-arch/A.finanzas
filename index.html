@@ -32,7 +32,7 @@
             padding: 25px;
             box-shadow: 0 8px 24px rgba(251, 111, 146, 0.15);
             border: 3px solid var(--pink-pastel);
-            box-sizing: border-box; /* Evita que los elementos se desborden o queden corridos */
+            box-sizing: border-box;
         }
 
         header {
@@ -40,7 +40,6 @@
             margin-bottom: 20px;
         }
 
-        /* Título optimizado para que las flores queden siempre en paralelo */
         h1 {
             color: var(--pink-dark);
             font-size: 20px; 
@@ -52,7 +51,6 @@
             gap: 5px;
         }
 
-        /* Sección de la Frase Diaria */
         .quote-box {
             background-color: var(--purple-pastel);
             padding: 15px;
@@ -64,7 +62,6 @@
             border-left: 5px solid var(--pink-dark);
         }
 
-        /* Tarjeta de Balance */
         .balance-card {
             background: linear-gradient(135deg, var(--pink-pastel), #FFF);
             border-radius: 16px;
@@ -89,7 +86,6 @@
             margin: 10px 0 0 0;
         }
 
-        /* Formularios alineados perfectamente */
         .form-group {
             display: flex;
             gap: 10px;
@@ -107,7 +103,6 @@
             box-sizing: border-box;
         }
 
-        /* Distribución proporcional para evitar desfases */
         input[type="text"] { width: 65%; }
         input[type="number"] { width: 35%; }
         select { width: 50%; background: white; }
@@ -134,7 +129,6 @@
             transform: translateY(-1px);
         }
 
-        /* Lista de Movimientos con botón de borrado */
         .transactions-list {
             margin-top: 25px;
         }
@@ -177,7 +171,6 @@
         .item-amount.ingreso { color: #55A38D; }
         .item-amount.gasto { color: var(--pink-dark); }
 
-        /* Botón pequeño para eliminar de forma cute */
         .btn-delete {
             background: none;
             color: #A0A0A0;
@@ -193,7 +186,6 @@
             background-color: #FFF0F5;
             transform: scale(1.1);
         }
-
     </style>
 </head>
 <body>
@@ -209,7 +201,7 @@
         </div>
 
         <div class="balance-card">
-            <h2>Balance del Mes</h2>
+            <h2>Balance General</h2>
             <div class="balance-amount" id="total-balance">$0.00</div>
         </div>
 
@@ -227,9 +219,8 @@
         </div>
 
         <div class="transactions-list">
-            <div style="font-weight: bold; margin-bottom: 15px; font-size: 14px; color: #7A7A7A;">📅 Historial de este Mes</div>
-            <div id="list-container">
-                </div>
+            <div style="font-weight: bold; margin-bottom: 15px; font-size: 14px; color: #7A7A7A;">📅 Historial por Día Guardado</div>
+            <div id="list-container"></div>
         </div>
     </div>
 
@@ -244,28 +235,73 @@
             "✨ El dinero es una herramienta para construir tus sueños."
         ];
 
-        let balance = 0;
+        let transactions = [];
 
         window.onload = function() {
+            // Frase aleatoria
             const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
             document.getElementById('daily-quote').innerText = randomQuote;
+
+            // Cargar datos guardados del almacenamiento local del dispositivo
+            const savedTransactions = localStorage.getItem('agenda_transactions');
+            if (savedTransactions) {
+                transactions = JSON.parse(savedTransactions);
+                renderTransactions();
+            }
         };
 
+        function saveToStorage() {
+            localStorage.setItem('agenda_transactions', JSON.stringify(transactions));
+        }
+
+        function calculateBalance() {
+            return transactions.reduce((acc, curr) => {
+                return curr.type === 'ingreso' ? acc + curr.amount : acc - curr.amount;
+            }, 0);
+        }
+
         function updateBalanceDisplay() {
+            const balance = calculateBalance();
             const totalBalance = document.getElementById('total-balance');
             totalBalance.innerText = `$${balance.toFixed(2)}`;
-            if(balance < 0) {
+            if (balance < 0) {
                 totalBalance.style.color = "#FB6F92"; 
             } else {
                 totalBalance.style.color = "#55A38D";
             }
         }
 
+        function renderTransactions() {
+            const listContainer = document.getElementById('list-container');
+            listContainer.innerHTML = '';
+
+            transactions.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.classList.add('transaction-item', item.type);
+
+                itemDiv.innerHTML = `
+                    <div class="item-left">
+                        <span class="item-concept">${item.concept}</span>
+                        <span class="item-type">${item.type === 'ingreso' ? '🌸 Ingreso' : '💸 Gasto'} • <small>${item.date}</small></span>
+                    </div>
+                    <div class="item-right">
+                        <span class="item-amount ${item.type}">
+                            ${item.type === 'ingreso' ? '+' : '-'}$${item.amount.toFixed(2)}
+                        </span>
+                        <button class="btn-delete" onclick="deleteTransaction('${item.id}')" title="Borrar">✖️</button>
+                    </div>
+                `;
+
+                listContainer.appendChild(itemDiv);
+            });
+
+            updateBalanceDisplay();
+        }
+
         function addTransaction() {
             const conceptInput = document.getElementById('concept');
             const amountInput = document.getElementById('amount');
             const typeInput = document.getElementById('type');
-            const listContainer = document.getElementById('list-container');
 
             const concept = conceptInput.value.trim();
             const amount = parseFloat(amountInput.value);
@@ -276,55 +312,33 @@
                 return;
             }
 
-            if (type === 'ingreso') {
-                balance += amount;
-            } else {
-                balance -= amount;
-            }
+            // Obtener fecha en formato entendible (ej: 24 oct, 14:30)
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }) + ', ' + 
+                            now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
-            updateBalanceDisplay();
+            const newTransaction = {
+                id: 'item-' + Date.now(),
+                concept: concept,
+                amount: amount,
+                type: type,
+                date: dateStr
+            };
 
-            // Generar un ID único para poder borrar este elemento específico después
-            const itemId = 'item-' + Date.now();
+            // Insertar al inicio para que el movimiento más reciente aparezca arriba
+            transactions.unshift(newTransaction);
 
-            const item = document.createElement('div');
-            item.classList.add('transaction-item', type);
-            item.setAttribute('id', itemId);
-
-            item.innerHTML = `
-                <div class="item-left">
-                    <span class="item-concept">${concept}</span>
-                    <span class="item-type">${type === 'ingreso' ? '🌸 Ingreso' : '💸 Gasto'}</span>
-                </div>
-                <div class="item-right">
-                    <span class="item-amount ${type}">
-                        ${type === 'ingreso' ? '+' : '-'}$${amount.toFixed(2)}
-                    </span>
-                    <button class="btn-delete" onclick="deleteTransaction('${itemId}', ${amount}, '${type}')" title="Borrar">✖️</button>
-                </div>
-            `;
-
-            listContainer.insertBefore(item, listContainer.firstChild);
+            saveToStorage();
+            renderTransactions();
 
             conceptInput.value = '';
             amountInput.value = '';
         }
 
-        // Nueva función para borrar el movimiento y recalcular de forma automática
-        function deleteTransaction(id, amount, type) {
-            const itemToDelete = document.getElementById(id);
-            if (itemToDelete) {
-                // Si borramos un ingreso, restamos ese dinero del balance. Si borramos un gasto, lo devolvemos.
-                if (type === 'ingreso') {
-                    balance -= amount;
-                } else {
-                    balance += amount;
-                }
-                
-                // Actualizar la pantalla y remover el elemento visualmente
-                updateBalanceDisplay();
-                itemToDelete.remove();
-            }
+        function deleteTransaction(id) {
+            transactions = transactions.filter(item => item.id !== id);
+            saveToStorage();
+            renderTransactions();
         }
     </script>
 </body>
